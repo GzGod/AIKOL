@@ -48,3 +48,8 @@ Multi-account X publishing and management hub built with Next.js + Prisma.
 - `POST /api/cron/publish`
 - `GET /api/analytics/overview`
 - `GET /api/activity`
+
+## Vercel Hobby Cron Note
+
+If you deploy on Vercel Hobby, cron jobs are limited and frequent expressions like `*/5 * * * *` are not available.
+This project defaults to once daily (`0 2 * * *`) in `vercel.json`.
