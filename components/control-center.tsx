@@ -114,7 +114,7 @@ async function readJson<T>(path: string): Promise<T> {
     cache: "no-store"
   });
   if (!response.ok) {
-    let message = `Request failed: ${path}`;
+    let message = `请求失败：${path}`;
     try {
       const payload = (await response.json()) as { message?: string };
       if (payload?.message) {
@@ -127,6 +127,47 @@ async function readJson<T>(path: string): Promise<T> {
   }
   const payload = (await response.json()) as T;
   return payload;
+}
+
+function accountStatusLabel(status: string): string {
+  if (status === "ACTIVE") {
+    return "正常";
+  }
+  if (status === "TOKEN_EXPIRED") {
+    return "令牌过期";
+  }
+  if (status === "RATE_LIMITED") {
+    return "限流中";
+  }
+  if (status === "SUSPENDED") {
+    return "已限制";
+  }
+  if (status === "DISCONNECTED") {
+    return "已断开";
+  }
+  return status;
+}
+
+function scheduleStatusLabel(status: string): string {
+  if (status === "PENDING") {
+    return "待执行";
+  }
+  if (status === "PROCESSING") {
+    return "执行中";
+  }
+  if (status === "POSTED") {
+    return "已发布";
+  }
+  if (status === "FAILED") {
+    return "失败待重试";
+  }
+  if (status === "BLOCKED") {
+    return "已阻断";
+  }
+  if (status === "CANCELED") {
+    return "已取消";
+  }
+  return status;
 }
 
 export function ControlCenter() {
@@ -210,7 +251,7 @@ export function ControlCenter() {
       setActivity(activityRes.data);
     } catch (requestError) {
       setError(
-        requestError instanceof Error ? requestError.message : "Failed to load dashboard data."
+        requestError instanceof Error ? requestError.message : "加载控制台数据失败。"
       );
     } finally {
       setLoading(false);
@@ -251,9 +292,9 @@ export function ControlCenter() {
       });
       const payload = (await response.json()) as { message?: string };
       if (!response.ok) {
-        throw new Error(payload.message ?? "Failed to create account.");
+        throw new Error(payload.message ?? "保存账号失败。");
       }
-      setNotice("Account saved.");
+      setNotice("账号已保存。");
       setAccountForm((prev) => ({
         ...prev,
         xUserId: "",
@@ -265,7 +306,7 @@ export function ControlCenter() {
       }));
       await reloadAll();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to create account.");
+      setError(submitError instanceof Error ? submitError.message : "保存账号失败。");
     }
   }
 
@@ -290,9 +331,9 @@ export function ControlCenter() {
       });
       const payload = (await response.json()) as { message?: string; data?: { id?: string } };
       if (!response.ok) {
-        throw new Error(payload.message ?? "Failed to create content.");
+        throw new Error(payload.message ?? "保存内容失败。");
       }
-      setNotice("Content saved.");
+      setNotice("内容已保存。");
       setContentForm({
         title: "",
         body: "",
@@ -308,7 +349,7 @@ export function ControlCenter() {
       }
       await reloadAll();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to create content.");
+      setError(submitError instanceof Error ? submitError.message : "保存内容失败。");
     }
   }
 
@@ -336,12 +377,12 @@ export function ControlCenter() {
         data?: { created?: number };
       };
       if (!response.ok) {
-        throw new Error(payload.message ?? "Failed to dispatch content.");
+        throw new Error(payload.message ?? "分发失败。");
       }
-      setNotice(`Dispatch created ${payload.data?.created ?? 0} schedules.`);
+      setNotice(`分发完成，已创建 ${payload.data?.created ?? 0} 条排程。`);
       await reloadAll();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to dispatch content.");
+      setError(submitError instanceof Error ? submitError.message : "分发失败。");
     }
   }
 
@@ -368,14 +409,14 @@ export function ControlCenter() {
         };
       };
       if (!response.ok) {
-        throw new Error(payload.message ?? "Failed to run publisher.");
+        throw new Error(payload.message ?? "执行发布任务失败。");
       }
       setNotice(
-        `Publisher run done: posted ${payload.data?.posted ?? 0}, failed ${payload.data?.failed ?? 0}, blocked ${payload.data?.blocked ?? 0}.`
+        `任务完成：发布 ${payload.data?.posted ?? 0}，失败 ${payload.data?.failed ?? 0}，阻断 ${payload.data?.blocked ?? 0}。`
       );
       await reloadAll();
     } catch (runError) {
-      setError(runError instanceof Error ? runError.message : "Failed to run publisher.");
+      setError(runError instanceof Error ? runError.message : "执行发布任务失败。");
     }
   }
 
@@ -391,15 +432,15 @@ export function ControlCenter() {
     <main className="cc-page">
       <header className="cc-header">
         <div>
-          <h1>AIKOL Operations Hub</h1>
-          <p>Multi-account X publishing control center for 50-100 account operations.</p>
+          <h1>AIKOL 运营中枢</h1>
+          <p>面向 50-100 个账号的 X 多账号发布与运营控制台。</p>
         </div>
         <div className="cc-actions">
           <button type="button" onClick={() => void reloadAll()}>
-            Refresh
+            刷新
           </button>
           <button type="button" className="primary" onClick={() => void runPublisherNow()}>
-            Run Publisher
+            立即执行发布
           </button>
         </div>
       </header>
@@ -414,19 +455,19 @@ export function ControlCenter() {
       {analytics && (
         <section className="cc-cards">
           <article>
-            <h3>Posted</h3>
+            <h3>已发布</h3>
             <p>{analytics.totals.posted}</p>
           </article>
           <article>
-            <h3>Failed</h3>
+            <h3>失败</h3>
             <p>{analytics.totals.failed}</p>
           </article>
           <article>
-            <h3>Blocked</h3>
+            <h3>阻断</h3>
             <p>{analytics.totals.blocked}</p>
           </article>
           <article>
-            <h3>Avg Engagement/Post</h3>
+            <h3>单帖平均互动</h3>
             <p>{analytics.totals.avgEngagementPerPost}</p>
           </article>
         </section>
@@ -434,10 +475,10 @@ export function ControlCenter() {
 
       <section className="cc-grid two">
         <form className="cc-panel" onSubmit={submitAccount}>
-          <h2>1) Account Management</h2>
-          <p>Add or update account credentials, policy limits, and routing tags/groups.</p>
+          <h2>1）账号管理</h2>
+          <p>新增或更新账号凭证、风控阈值、标签与分组。</p>
           <label>
-            X User ID
+            X 用户 ID
             <input
               required
               value={accountForm.xUserId}
@@ -447,7 +488,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Username
+            用户名
             <input
               required
               value={accountForm.username}
@@ -457,7 +498,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Display Name
+            显示名
             <input
               required
               value={accountForm.displayName}
@@ -467,7 +508,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Access Token
+            访问令牌（Access Token）
             <input
               required
               value={accountForm.accessToken}
@@ -477,7 +518,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Refresh Token
+            刷新令牌（Refresh Token）
             <input
               value={accountForm.refreshToken}
               onChange={(event) =>
@@ -486,7 +527,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Token Expires At
+            Token 过期时间
             <input
               type="datetime-local"
               value={accountForm.tokenExpiresAt}
@@ -497,7 +538,7 @@ export function ControlCenter() {
           </label>
           <div className="cc-inline">
             <label>
-              Language
+              语言
               <input
                 value={accountForm.language}
                 onChange={(event) =>
@@ -506,7 +547,7 @@ export function ControlCenter() {
               />
             </label>
             <label>
-              Purpose
+              用途
               <input
                 value={accountForm.purpose}
                 onChange={(event) =>
@@ -516,7 +557,7 @@ export function ControlCenter() {
             </label>
           </div>
           <label>
-            Tags (comma separated)
+            标签（逗号分隔）
             <input
               value={accountForm.tags}
               onChange={(event) =>
@@ -525,7 +566,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Groups (comma separated)
+            分组（逗号分隔）
             <input
               value={accountForm.groups}
               onChange={(event) =>
@@ -535,7 +576,7 @@ export function ControlCenter() {
           </label>
           <div className="cc-inline">
             <label>
-              Min Interval (minutes)
+              最小发布间隔（分钟）
               <input
                 type="number"
                 min={5}
@@ -549,7 +590,7 @@ export function ControlCenter() {
               />
             </label>
             <label>
-              Daily Limit
+              日限额
               <input
                 type="number"
                 min={1}
@@ -560,7 +601,7 @@ export function ControlCenter() {
               />
             </label>
             <label>
-              Monthly Limit
+              月限额
               <input
                 type="number"
                 min={1}
@@ -585,13 +626,13 @@ export function ControlCenter() {
                 }))
               }
             />
-            Enable per-account proxy
+            启用账号独立代理
           </label>
           {accountForm.proxyEnabled && (
             <>
               <div className="cc-inline">
                 <label>
-                  Proxy Protocol
+                  代理协议
                   <select
                     value={accountForm.proxyProtocol}
                     onChange={(event) =>
@@ -606,7 +647,7 @@ export function ControlCenter() {
                   </select>
                 </label>
                 <label>
-                  Proxy Host
+                  代理地址
                   <input
                     value={accountForm.proxyHost}
                     onChange={(event) =>
@@ -619,7 +660,7 @@ export function ControlCenter() {
                   />
                 </label>
                 <label>
-                  Proxy Port
+                  代理端口
                   <input
                     type="number"
                     min={1}
@@ -636,7 +677,7 @@ export function ControlCenter() {
               </div>
               <div className="cc-inline">
                 <label>
-                  Proxy Username
+                  代理用户名
                   <input
                     value={accountForm.proxyUsername}
                     onChange={(event) =>
@@ -648,7 +689,7 @@ export function ControlCenter() {
                   />
                 </label>
                 <label>
-                  Proxy Password
+                  代理密码
                   <input
                     type="password"
                     value={accountForm.proxyPassword}
@@ -658,22 +699,22 @@ export function ControlCenter() {
                         proxyPassword: event.target.value
                       }))
                     }
-                    placeholder="leave empty to keep current"
+                    placeholder="留空则保持当前密码"
                   />
                 </label>
               </div>
             </>
           )}
           <button type="submit" className="primary">
-            Save Account
+            保存账号
           </button>
         </form>
 
         <form className="cc-panel" onSubmit={submitContent}>
-          <h2>2) Content Matrix</h2>
-          <p>Create source content and optionally auto-generate per-account variants.</p>
+          <h2>2）内容矩阵</h2>
+          <p>创建母稿内容，并按账号自动生成内容变体。</p>
           <label>
-            Title
+            标题
             <input
               required
               value={contentForm.title}
@@ -683,7 +724,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Body
+            正文
             <textarea
               required
               rows={8}
@@ -695,7 +736,7 @@ export function ControlCenter() {
           </label>
           <div className="cc-inline">
             <label>
-              Topic
+              主题
               <input
                 value={contentForm.topic}
                 onChange={(event) =>
@@ -704,7 +745,7 @@ export function ControlCenter() {
               />
             </label>
             <label>
-              Language
+              语言
               <input
                 value={contentForm.language}
                 onChange={(event) =>
@@ -724,19 +765,19 @@ export function ControlCenter() {
                 }))
               }
             />
-            Auto-generate account-specific variants
+            自动生成账号专属文案变体
           </label>
           <button type="submit" className="primary">
-            Save Content
+            保存内容
           </button>
         </form>
       </section>
 
       <section className="cc-panel">
-        <h2>3) Dispatch & Scheduling</h2>
+        <h2>3）分发与排程</h2>
         <form className="cc-grid three" onSubmit={submitDispatch}>
           <label>
-            Content
+            内容
             <select
               required
               value={dispatchForm.contentId}
@@ -744,7 +785,7 @@ export function ControlCenter() {
                 setDispatchForm((prev) => ({ ...prev, contentId: event.target.value }))
               }
             >
-              <option value="">Select content</option>
+              <option value="">请选择内容</option>
               {contents.map((content) => (
                 <option key={content.id} value={content.id}>
                   {content.title}
@@ -753,7 +794,7 @@ export function ControlCenter() {
             </select>
           </label>
           <label>
-            Mode
+            分发模式
             <select
               value={dispatchForm.mode}
               onChange={(event) =>
@@ -763,12 +804,12 @@ export function ControlCenter() {
                 }))
               }
             >
-              <option value="rule">Rule-based routing</option>
-              <option value="manual">Manual account selection</option>
+              <option value="rule">规则路由</option>
+              <option value="manual">手动选择账号</option>
             </select>
           </label>
           <label>
-            Start At
+            开始时间
             <input
               type="datetime-local"
               value={dispatchForm.scheduleAt}
@@ -778,7 +819,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Stagger Minutes
+            账号间隔（分钟）
             <input
               type="number"
               min={0}
@@ -789,7 +830,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            Priority
+            优先级
             <input
               type="number"
               min={1}
@@ -801,19 +842,19 @@ export function ControlCenter() {
           </label>
           <div className="cc-actions-inline">
             <button type="submit" className="primary" disabled={!dispatchForm.contentId}>
-              Dispatch
+              开始分发
             </button>
           </div>
         </form>
         <p className="cc-muted">
           {dispatchForm.mode === "rule"
-            ? "Rule mode routes by topic tags and language matching."
-            : "Manual mode dispatches only to checked accounts."}
+            ? "规则路由：按账号标签主题与语言匹配自动分发。"
+            : "手动模式：仅分发到勾选账号。"}
         </p>
         {selectedContent && (
           <p className="cc-muted">
-            Selected content topic: <strong>{selectedContent.topic || "untagged"}</strong>, language:{" "}
-            <strong>{selectedContent.language || "any"}</strong>
+            当前内容主题：<strong>{selectedContent.topic || "未标记"}</strong>，语言：
+            <strong>{selectedContent.language || "不限"}</strong>
           </p>
         )}
         <div className="cc-account-picker">
@@ -824,7 +865,8 @@ export function ControlCenter() {
                 checked={selectedAccountIds.includes(account.id)}
                 onChange={() => toggleAccountSelection(account.id)}
               />
-              @{account.username} ({account.status}) {account.tags.length ? `#${account.tags.join(", #")}` : ""}
+              @{account.username}（{accountStatusLabel(account.status)}）{" "}
+              {account.tags.length ? `#${account.tags.join(", #")}` : ""}
             </label>
           ))}
         </div>
@@ -832,17 +874,17 @@ export function ControlCenter() {
 
       <section className="cc-grid two">
         <article className="cc-panel">
-          <h2>4) Accounts</h2>
+          <h2>4）账号列表</h2>
           <div className="cc-table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Account</th>
-                  <th>Status</th>
-                  <th>Tags</th>
-                  <th>Groups</th>
-                  <th>Proxy</th>
-                  <th>Schedules</th>
+                  <th>账号</th>
+                  <th>状态</th>
+                  <th>标签</th>
+                  <th>分组</th>
+                  <th>代理</th>
+                  <th>排程数</th>
                 </tr>
               </thead>
               <tbody>
@@ -853,7 +895,7 @@ export function ControlCenter() {
                       <br />
                       <span>{account.displayName}</span>
                     </td>
-                    <td>{account.status}</td>
+                    <td>{accountStatusLabel(account.status)}</td>
                     <td>{account.tags.join(", ") || "-"}</td>
                     <td>{account.groups.join(", ") || "-"}</td>
                     <td>
@@ -870,17 +912,17 @@ export function ControlCenter() {
         </article>
 
         <article className="cc-panel">
-          <h2>5) Analytics</h2>
+          <h2>5）数据分析</h2>
           <div className="cc-table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Account</th>
-                  <th>Posted</th>
-                  <th>Failed</th>
-                  <th>Blocked</th>
-                  <th>Impressions</th>
-                  <th>Engagement</th>
+                  <th>账号</th>
+                  <th>已发布</th>
+                  <th>失败</th>
+                  <th>阻断</th>
+                  <th>曝光</th>
+                  <th>互动</th>
                 </tr>
               </thead>
               <tbody>
@@ -897,7 +939,7 @@ export function ControlCenter() {
               </tbody>
             </table>
           </div>
-          <h3>Top Topics</h3>
+          <h3>主题排行</h3>
           <ul className="cc-list">
             {analytics?.topTopics.map((item) => (
               <li key={item.topic}>
@@ -905,11 +947,11 @@ export function ControlCenter() {
               </li>
             ))}
           </ul>
-          <h3>Top Hours</h3>
+          <h3>发布时间段排行</h3>
           <ul className="cc-list">
             {analytics?.topHours.map((item) => (
               <li key={item.hour}>
-                {item.hour}:00 - {item.posted} posts
+                {item.hour}:00 - {item.posted} 条
               </li>
             ))}
           </ul>
@@ -918,12 +960,12 @@ export function ControlCenter() {
 
       <section className="cc-grid two">
         <article className="cc-panel">
-          <h2>Schedules</h2>
-          <h3>Calendar</h3>
+          <h2>排程列表</h2>
+          <h3>日历汇总</h3>
           <ul className="cc-list">
             {calendarBuckets.map((bucket) => (
               <li key={bucket.date}>
-                {bucket.date}: {bucket.count} scheduled
+                {bucket.date}：{bucket.count} 条排程
               </li>
             ))}
           </ul>
@@ -931,18 +973,18 @@ export function ControlCenter() {
             <table>
               <thead>
                 <tr>
-                  <th>Planned</th>
-                  <th>Status</th>
-                  <th>Account</th>
-                  <th>Content</th>
-                  <th>Attempt</th>
+                  <th>计划时间</th>
+                  <th>状态</th>
+                  <th>账号</th>
+                  <th>内容</th>
+                  <th>尝试次数</th>
                 </tr>
               </thead>
               <tbody>
                 {schedules.map((row) => (
                   <tr key={row.id}>
                     <td>{new Date(row.plannedAt).toLocaleString()}</td>
-                    <td>{row.status}</td>
+                    <td>{scheduleStatusLabel(row.status)}</td>
                     <td>@{row.account.username}</td>
                     <td>{row.content.title}</td>
                     <td>
@@ -956,7 +998,7 @@ export function ControlCenter() {
         </article>
 
         <article className="cc-panel">
-          <h2>Activity</h2>
+          <h2>活动日志</h2>
           <ul className="cc-activity">
             {activity.map((item) => (
               <li key={item.id}>
@@ -969,7 +1011,7 @@ export function ControlCenter() {
         </article>
       </section>
 
-      {loading && <p className="cc-muted">Loading...</p>}
+      {loading && <p className="cc-muted">加载中...</p>}
     </main>
   );
 }
