@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "unauthorized",
-          message: "Invalid cron secret."
+          message: "Cron 密钥无效。"
         },
         {
           status: 401
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         : {};
     const limit = Math.max(1, Math.min(200, Math.floor(payload.limit ?? 30)));
     if (!Number.isFinite(limit)) {
-      return badRequest("limit must be numeric.");
+      return badRequest("limit 必须为数字。");
     }
     const summary = await runPublisherCycle(limit);
     return NextResponse.json({

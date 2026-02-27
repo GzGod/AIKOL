@@ -14,7 +14,7 @@ export function badRequest(message: string, details?: unknown) {
 }
 
 export function serverError(error: unknown) {
-  const message = error instanceof Error ? error.message : "internal_error";
+  const message = error instanceof Error ? error.message : "服务器内部错误";
   return NextResponse.json(
     {
       error: "internal_error",

@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json(
         {
           error: "not_found",
-          message: "Account not found."
+          message: "账号不存在。"
         },
         {
           status: 404

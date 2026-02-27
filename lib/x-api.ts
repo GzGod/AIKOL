@@ -164,7 +164,7 @@ export async function publishPostToX(input: PublishRequest): Promise<XPublishRes
       ok: false,
       status: response.status,
       errorCode: parsed.errorCode,
-      errorMessage: parsed.errorMessage ?? `x_publish_failed_${response.status}`,
+      errorMessage: parsed.errorMessage ?? `发布失败（HTTP ${response.status}）`,
       rateLimit
     };
   }
@@ -195,7 +195,7 @@ export async function refreshAccessTokenOnX(
     return {
       ok: false,
       status: 500,
-      errorMessage: "OAuth client credentials are missing."
+      errorMessage: "缺少 OAuth 客户端凭据配置。"
     };
   }
 
@@ -240,7 +240,7 @@ export async function refreshAccessTokenOnX(
     return {
       ok: false,
       status: response.status,
-      errorMessage: `refresh_failed_${response.status}`
+      errorMessage: `令牌刷新失败（HTTP ${response.status}）`
     };
   }
 
@@ -253,7 +253,7 @@ export async function refreshAccessTokenOnX(
     return {
       ok: false,
       status: 500,
-      errorMessage: "refresh_missing_access_token"
+      errorMessage: "刷新响应中缺少 access_token"
     };
   }
   const expiresAt =

@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "db_unavailable"
+        error: error instanceof Error ? error.message : "数据库不可用"
       },
       {
         status: 500

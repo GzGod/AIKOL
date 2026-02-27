@@ -51,10 +51,10 @@ export async function POST(request: NextRequest) {
     };
     const accounts = Array.isArray(payload.accounts) ? payload.accounts : [];
     if (accounts.length === 0) {
-      return badRequest("accounts must be a non-empty array.");
+      return badRequest("accounts 必须为非空数组。");
     }
     if (accounts.length > 200) {
-      return badRequest("At most 200 accounts per request.");
+      return badRequest("单次请求最多导入 200 个账号。");
     }
 
     const report = [];
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           xUserId: xUserId ?? null,
           username: username ?? null,
           status: "skipped",
-          reason: "missing required fields"
+          reason: "缺少必填字段"
         });
         continue;
       }
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
             xUserId,
             username,
             status: "skipped",
-            reason: "invalid proxy config"
+            reason: "代理配置不合法"
           });
           continue;
         }

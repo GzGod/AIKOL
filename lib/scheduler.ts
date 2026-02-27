@@ -79,7 +79,7 @@ function resolveProxyConfig(schedule: DueSchedule): {
   const protocol = mapProxyProtocol(schedule.account.proxyProtocol);
   if (!protocol || !schedule.account.proxyHost || !schedule.account.proxyPort) {
     return {
-      error: "Proxy is enabled but proxy settings are incomplete."
+      error: "已启用代理，但代理配置不完整。"
     };
   }
 
@@ -89,7 +89,7 @@ function resolveProxyConfig(schedule: DueSchedule): {
       password = decryptSecret(schedule.account.proxyPasswordEncrypted);
     } catch {
       return {
-        error: "Cannot decrypt proxy password. Check TOKEN_ENCRYPTION_KEY."
+        error: "代理密码解密失败，请检查 TOKEN_ENCRYPTION_KEY。"
       };
     }
   }
@@ -212,19 +212,19 @@ async function applyRiskGuards(schedule: DueSchedule, recentBodies: string[]): P
 
   if (dayPosts >= schedule.account.dailyPostLimit) {
     return {
-      blockedReason: `Daily quota reached (${schedule.account.dailyPostLimit}).`
+      blockedReason: `已达到当日发布上限（${schedule.account.dailyPostLimit}）。`
     };
   }
 
   if (monthPosts >= schedule.account.monthlyPostLimit) {
     return {
-      blockedReason: `Monthly quota reached (${schedule.account.monthlyPostLimit}).`
+      blockedReason: `已达到当月发布上限（${schedule.account.monthlyPostLimit}）。`
     };
   }
 
   if (isTooSimilar(schedule.variant.body, recentBodies)) {
     return {
-      blockedReason: "Content too similar to recent published posts."
+      blockedReason: "内容与近期已发布内容过于相似。"
     };
   }
 
@@ -247,7 +247,7 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
     if (!schedule.account.refreshTokenEncrypted) {
       await blockSchedule(
         schedule,
-        "Token expired and refresh token is missing.",
+        "令牌已过期且缺少刷新令牌。",
         AccountStatus.TOKEN_EXPIRED
       );
       return "blocked";
@@ -259,7 +259,7 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
       if (!refreshed.ok) {
         await blockSchedule(
           schedule,
-          `Token refresh failed: ${refreshed.errorMessage}`,
+          `令牌刷新失败：${refreshed.errorMessage}`,
           AccountStatus.TOKEN_EXPIRED
         );
         return "blocked";
@@ -283,7 +283,7 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
     } catch {
       await blockSchedule(
         schedule,
-        "Token expired and refresh flow failed unexpectedly.",
+        "令牌已过期，刷新流程异常失败。",
         AccountStatus.TOKEN_EXPIRED
       );
       return "blocked";
@@ -292,7 +292,7 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
     try {
       accessToken = decryptSecret(schedule.account.accessTokenEncrypted);
     } catch {
-      await blockSchedule(schedule, "Cannot decrypt access token. Fix TOKEN_ENCRYPTION_KEY.");
+      await blockSchedule(schedule, "访问令牌解密失败，请检查 TOKEN_ENCRYPTION_KEY。");
       return "blocked";
     }
   }
@@ -300,7 +300,7 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
   const guard = await applyRiskGuards(schedule, recentBodies);
   if (guard.blockedReason) {
     const status =
-      guard.blockedReason.includes("Token expired") ? AccountStatus.TOKEN_EXPIRED : undefined;
+      guard.blockedReason.includes("令牌") ? AccountStatus.TOKEN_EXPIRED : undefined;
     await blockSchedule(schedule, guard.blockedReason, status);
     return "blocked";
   }
@@ -314,13 +314,13 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
         status: ScheduleStatus.PENDING,
         plannedAt: guard.rescheduledAt,
         nextAttemptAt: null,
-        lastError: `Rescheduled to respect min interval (${schedule.account.minIntervalMinutes}m).`
+        lastError: `因最小发布间隔限制，已重排（${schedule.account.minIntervalMinutes} 分钟）。`
       }
     });
     await logActivity({
       level: ActivityLevel.WARN,
       event: "schedule_rescheduled",
-      message: "Rescheduled because minimal publish interval was not reached.",
+      message: "未达到最小发布间隔，任务已自动重排。",
       accountId: schedule.accountId,
       scheduleId: schedule.id,
       meta: {
@@ -401,7 +401,7 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
     await logActivity({
       level: ActivityLevel.INFO,
       event: "schedule_posted",
-      message: "Scheduled post was published successfully.",
+      message: "排程内容发布成功。",
       accountId: schedule.accountId,
       scheduleId: schedule.id
     });
@@ -482,8 +482,8 @@ async function processSchedule(schedule: DueSchedule, recentBodies: string[]): P
     level: canRetry ? ActivityLevel.WARN : ActivityLevel.ERROR,
     event: canRetry ? "schedule_retry_scheduled" : "schedule_publish_failed",
     message: canRetry
-      ? `Publish failed, retry at ${nextAttemptAt?.toISOString()}.`
-      : `Publish failed and was blocked. ${publishResult.errorMessage ?? ""}`.trim(),
+      ? `发布失败，已安排重试：${nextAttemptAt?.toISOString()}.`
+      : `发布失败并已阻断。${publishResult.errorMessage ?? ""}`.trim(),
     accountId: schedule.accountId,
     scheduleId: schedule.id,
     meta: {

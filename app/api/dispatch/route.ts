@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const payload = (await request.json()) as DispatchPayload;
     const contentId = payload.contentId?.trim();
     if (!contentId) {
-      return badRequest("contentId is required.");
+      return badRequest("contentId 为必填项。");
     }
 
     const content = await db.content.findUnique({
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "not_found",
-          message: "content not found"
+          message: "内容不存在。"
         },
         {
           status: 404
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           )
         : [];
       if (targetAccountIds.length === 0) {
-        return badRequest("accountIds are required in manual mode.");
+        return badRequest("手动模式下，accountIds 为必填项。");
       }
     } else {
       const candidates = await db.account.findMany({
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       targetAccountIds = matched.map((account) => account.id);
       if (targetAccountIds.length === 0) {
         return badRequest(
-          "No accounts matched routing rules. Add topic tags or language on accounts."
+          "没有账号命中路由规则，请先配置账号主题标签或语言。"
         );
       }
     }
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         data: {
           level: "INFO",
           event: "content_dispatched",
-          message: `Content "${content.title}" dispatched to ${created.length} accounts.`,
+          message: `内容《${content.title}》已分发到 ${created.length} 个账号。`,
           meta: {
             mode,
             staggerMinutes,
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof Error && error.message === "invalid_scheduleAt") {
-      return badRequest("scheduleAt must be a valid datetime.");
+      return badRequest("scheduleAt 必须是合法的日期时间。");
     }
     return serverError(error);
   }

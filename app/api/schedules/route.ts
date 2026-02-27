@@ -92,11 +92,11 @@ export async function POST(request: NextRequest) {
     const variantId = payload.contentVariantId?.trim();
     const plannedAtRaw = payload.plannedAt?.trim();
     if (!accountId || !contentId || !variantId || !plannedAtRaw) {
-      return badRequest("accountId, contentId, contentVariantId and plannedAt are required.");
+      return badRequest("accountId、contentId、contentVariantId、plannedAt 均为必填项。");
     }
     const plannedAt = new Date(plannedAtRaw);
     if (Number.isNaN(plannedAt.getTime())) {
-      return badRequest("plannedAt is invalid.");
+      return badRequest("plannedAt 不合法。");
     }
     const priority = Math.max(1, Math.min(1000, Math.floor(payload.priority ?? 100)));
     const maxAttempts = Math.max(1, Math.min(8, Math.floor(payload.maxAttempts ?? 3)));
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       data: {
         level: "INFO",
         event: "schedule_created",
-        message: `Schedule created for account ${accountId}.`,
+        message: `已为账号 ${accountId} 创建排程。`,
         accountId,
         scheduleId: schedule.id
       }
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "duplicate_schedule",
-          message: "idempotencyKey already exists."
+          message: "idempotencyKey 已存在。"
         },
         {
           status: 409

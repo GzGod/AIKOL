@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     const title = payload.title?.trim();
     const body = payload.body?.trim();
     if (!title || !body) {
-      return badRequest("title and body are required.");
+      return badRequest("title 和 body 为必填项。");
     }
 
     const status =
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         data: {
           level: "INFO",
           event: "content_created",
-          message: `Content "${title}" created.`,
+          message: `内容《${title}》已创建。`,
           meta: {
             autoVariants: Boolean(payload.autoVariants),
             targetAccounts: targetAccountIds.length

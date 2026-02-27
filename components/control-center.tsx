@@ -170,6 +170,75 @@ function scheduleStatusLabel(status: string): string {
   return status;
 }
 
+function activityEventLabel(event: string): string {
+  if (event === "account_upserted") {
+    return "账号更新";
+  }
+  if (event === "content_created") {
+    return "内容创建";
+  }
+  if (event === "content_dispatched") {
+    return "内容分发";
+  }
+  if (event === "schedule_created") {
+    return "排程创建";
+  }
+  if (event === "schedule_rescheduled") {
+    return "任务重排";
+  }
+  if (event === "schedule_posted") {
+    return "发布成功";
+  }
+  if (event === "schedule_retry_scheduled") {
+    return "安排重试";
+  }
+  if (event === "schedule_publish_failed") {
+    return "发布失败";
+  }
+  if (event === "schedule_blocked") {
+    return "任务阻断";
+  }
+  return event;
+}
+
+function activityMessageLabel(event: string, message: string): string {
+  if (/[\u4e00-\u9fa5]/.test(message)) {
+    return message;
+  }
+
+  const accountUpsert = message.match(/^Account @(.+) was added or updated\.$/);
+  if (accountUpsert) {
+    return `账号 @${accountUpsert[1]} 已新增或更新。`;
+  }
+  const contentCreated = message.match(/^Content "(.+)" created\.$/);
+  if (contentCreated) {
+    return `内容《${contentCreated[1]}》已创建。`;
+  }
+  const contentDispatched = message.match(/^Content "(.+)" dispatched to (\d+) accounts\.$/);
+  if (contentDispatched) {
+    return `内容《${contentDispatched[1]}》已分发到 ${contentDispatched[2]} 个账号。`;
+  }
+  const scheduleCreated = message.match(/^Schedule created for account (.+)\.$/);
+  if (scheduleCreated) {
+    return `已为账号 ${scheduleCreated[1]} 创建排程。`;
+  }
+  const retryScheduled = message.match(/^Publish failed, retry at (.+)\.$/);
+  if (retryScheduled) {
+    return `发布失败，已安排重试：${retryScheduled[1]}。`;
+  }
+  const blocked = message.match(/^Publish failed and was blocked\.\s*(.*)$/);
+  if (blocked) {
+    return `发布失败并已阻断。${blocked[1] ?? ""}`.trim();
+  }
+  if (event === "schedule_posted") {
+    return "排程内容发布成功。";
+  }
+  if (event === "schedule_rescheduled") {
+    return "未达到最小发布间隔，任务已自动重排。";
+  }
+  return message;
+}
+
 export function ControlCenter() {
   const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [contents, setContents] = useState<ContentView[]>([]);
@@ -508,7 +577,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            访问令牌（Access Token）
+            访问令牌
             <input
               required
               value={accountForm.accessToken}
@@ -518,7 +587,7 @@ export function ControlCenter() {
             />
           </label>
           <label>
-            刷新令牌（Refresh Token）
+            刷新令牌
             <input
               value={accountForm.refreshToken}
               onChange={(event) =>
@@ -1003,8 +1072,8 @@ export function ControlCenter() {
             {activity.map((item) => (
               <li key={item.id}>
                 <span>{new Date(item.createdAt).toLocaleString()}</span>
-                <strong>{item.event}</strong>
-                <p>{item.message}</p>
+                <strong>{activityEventLabel(item.event)}</strong>
+                <p>{activityMessageLabel(item.event, item.message)}</p>
               </li>
             ))}
           </ul>

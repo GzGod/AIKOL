@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     const accessToken = payload.accessToken?.trim();
 
     if (!xUserId || !username || !displayName || !accessToken) {
-      return badRequest("xUserId, username, displayName and accessToken are required.");
+      return badRequest("xUserId、username、displayName、accessToken 均为必填项。");
     }
 
     const tokenExpiresAt =
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
         ? new Date(payload.tokenExpiresAt)
         : null;
     if (tokenExpiresAt && Number.isNaN(tokenExpiresAt.getTime())) {
-      return badRequest("tokenExpiresAt must be a valid datetime string.");
+      return badRequest("tokenExpiresAt 必须是合法的日期时间字符串。");
     }
 
     const now = Date.now();
@@ -179,13 +179,13 @@ export async function POST(request: NextRequest) {
 
     if (proxyEnabled) {
       if (!proxyProtocol) {
-        return badRequest("proxyProtocol must be one of http/https when proxyEnabled is true.");
+        return badRequest("启用代理时，proxyProtocol 必须为 http 或 https。");
       }
       if (!proxyHost) {
-        return badRequest("proxyHost is required when proxyEnabled is true.");
+        return badRequest("启用代理时，proxyHost 为必填项。");
       }
       if (!Number.isFinite(proxyPort) || proxyPort < 1 || proxyPort > 65535) {
-        return badRequest("proxyPort must be within 1-65535 when proxyEnabled is true.");
+        return badRequest("启用代理时，proxyPort 必须在 1-65535 之间。");
       }
     }
 
@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
         data: {
           level: "INFO",
           event: "account_upserted",
-          message: `Account @${username} was added or updated.`,
+          message: `账号 @${username} 已新增或更新。`,
           accountId: account.id,
           meta: {
             tags: tagNames,

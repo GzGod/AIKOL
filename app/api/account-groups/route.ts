@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     };
     const name = payload.name?.trim();
     if (!name) {
-      return badRequest("name is required.");
+      return badRequest("分组名称为必填项。");
     }
     const group = await db.accountGroup.upsert({
       where: {
