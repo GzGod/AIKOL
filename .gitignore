@@ -1,0 +1,27 @@
+# dependencies
+/node_modules
+
+# next
+/.next
+/.next_stale*
+/out
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dev-*.log
+dev-*.err.log
+
+# misc
+.DS_Store
+*.pem
+
+# env
+.env*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+sp-test.txt

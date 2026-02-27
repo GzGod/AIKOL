@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  ACTIVE
+  TOKEN_EXPIRED
+  RATE_LIMITED
+  SUSPENDED
+  DISCONNECTED
+}
+
+enum ProxyProtocol {
+  HTTP
+  HTTPS
+}
+
+enum ContentStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ScheduleStatus {
+  PENDING
+  PROCESSING
+  POSTED
+  FAILED
+  BLOCKED
+  CANCELED
+}
+
+enum AttemptStatus {
+  SUCCESS
+  FAIL
+  BLOCKED
+  RETRY_SCHEDULED
+}
+
+enum ActivityLevel {
+  INFO
+  WARN
+  ERROR
+}
+
+model Account {
+  id                   String               @id @default(cuid())
+  xUserId              String               @unique
+  username             String
+  displayName          String
+  language             String?
+  purpose              String?
+  accessTokenEncrypted String
+  refreshTokenEncrypted String?
+  tokenExpiresAt       DateTime?
+  status               AccountStatus        @default(ACTIVE)
+  healthMessage        String?
+  minIntervalMinutes   Int                  @default(20)
+  dailyPostLimit       Int                  @default(50)
+  monthlyPostLimit     Int                  @default(1000)
+  proxyEnabled         Boolean              @default(false)
+  proxyProtocol        ProxyProtocol?
+  proxyHost            String?
+  proxyPort            Int?
+  proxyUsername        String?
+  proxyPasswordEncrypted String?
+  lastPostedAt         DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  groupMemberships     AccountGroupMember[]
+  tagLinks             AccountTag[]
+  variants             ContentVariant[]
+  schedules            Schedule[]
+  attempts             PublishAttempt[]
+  rateLimits           RateLimitSnapshot[]
+  metrics              PostMetric[]
+  activityLogs         ActivityLog[]
+
+  @@index([status])
+  @@index([username])
+}
+
+model AccountGroup {
+  id          String               @id @default(cuid())
+  name        String               @unique
+  description String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  members     AccountGroupMember[]
+}
+
+model AccountGroupMember {
+  accountId String
+  groupId   String
+  createdAt DateTime     @default(now())
+  account   Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  group     AccountGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, groupId])
+  @@index([groupId])
+}
+
+model Tag {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  accountLinks AccountTag[]
+}
+
+model AccountTag {
+  accountId String
+  tagId     String
+  createdAt DateTime @default(now())
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, tagId])
+  @@index([tagId])
+}
+
+model Content {
+  id        String           @id @default(cuid())
+  title     String
+  body      String
+  topic     String?
+  language  String?
+  status    ContentStatus    @default(DRAFT)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  variants  ContentVariant[]
+  schedules Schedule[]
+}
+
+model ContentVariant {
+  id            String    @id @default(cuid())
+  contentId     String
+  accountId     String?
+  body          String
+  similarityKey String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  content       Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  account       Account?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  schedules     Schedule[]
+
+  @@index([contentId])
+  @@index([accountId])
+  @@index([similarityKey])
+}
+
+model Schedule {
+  id               String          @id @default(cuid())
+  accountId        String
+  contentId        String
+  contentVariantId String
+  plannedAt        DateTime
+  status           ScheduleStatus  @default(PENDING)
+  idempotencyKey   String          @unique
+  priority         Int             @default(100)
+  attemptCount     Int             @default(0)
+  maxAttempts      Int             @default(3)
+  nextAttemptAt    DateTime?
+  postedAt         DateTime?
+  externalPostId   String?
+  lastError        String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  account          Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  content          Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  variant          ContentVariant  @relation(fields: [contentVariantId], references: [id], onDelete: Cascade)
+  attempts         PublishAttempt[]
+  activityLogs     ActivityLog[]
+  metric           PostMetric?
+
+  @@index([plannedAt, status])
+  @@index([accountId, status, plannedAt])
+  @@index([nextAttemptAt, status])
+}
+
+model PublishAttempt {
+  id                 String       @id @default(cuid())
+  scheduleId         String
+  accountId          String
+  attemptNo          Int
+  status             AttemptStatus
+  requestedAt        DateTime     @default(now())
+  finishedAt         DateTime?
+  httpStatus         Int?
+  errorCode          String?
+  errorMessage       String?
+  rateLimitLimit     Int?
+  rateLimitRemaining Int?
+  rateLimitResetAt   DateTime?
+  createdAt          DateTime     @default(now())
+  schedule           Schedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  account            Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, attemptNo])
+  @@index([accountId, requestedAt])
+}
+
+model RateLimitSnapshot {
+  id        String   @id @default(cuid())
+  accountId String
+  endpoint  String
+  limit     Int?
+  remaining Int?
+  resetAt   DateTime?
+  observedAt DateTime @default(now())
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, endpoint, observedAt])
+}
+
+model PostMetric {
+  id         String   @id @default(cuid())
+  accountId  String
+  scheduleId String   @unique
+  impressions Int     @default(0)
+  likes      Int      @default(0)
+  reposts    Int      @default(0)
+  replies    Int      @default(0)
+  bookmarks  Int      @default(0)
+  collectedAt DateTime @default(now())
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  schedule   Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, collectedAt])
+}
+
+model ActivityLog {
+  id        String        @id @default(cuid())
+  level     ActivityLevel @default(INFO)
+  event     String
+  message   String
+  meta      Json?
+  accountId String?
+  scheduleId String?
+  createdAt DateTime      @default(now())
+  account   Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  schedule  Schedule?     @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([accountId, createdAt])
+  @@index([scheduleId, createdAt])
+}
